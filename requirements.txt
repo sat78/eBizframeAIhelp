@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+python-multipart
+assemblyai
+moviepy
+pydub
+speechrecognition
+PyPDF2
+faiss-cpu
+pyodbc
+langchain
+langchain-community
+langchain-google-genai
+langchain-huggingface
+python-dotenv
+pandas
+sentence-transformers
