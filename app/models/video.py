@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.db.database import Base
@@ -22,6 +22,7 @@ class VideoTranscribe(Base):
     video_id = Column(Integer, ForeignKey("videos.id"))
     user_id = Column(Integer, ForeignKey("users.id"))
     transcription_text = Column(Text)
+    chunks = Column(JSON, nullable=True)
     transcribed_at = Column(DateTime(timezone=True), server_default=func.now())
 
     video = relationship("Video", back_populates="transcriptions")

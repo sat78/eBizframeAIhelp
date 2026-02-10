@@ -8,7 +8,7 @@ from datetime import datetime
 from app.db.database import get_db
 from app.models.user import User
 from app.models.video import Video, VideoTranscribe
-from app.schemas.video import Video as VideoSchema, VideoCreate, Transcription as TranscriptionSchema
+from app.schemas.video import Video as VideoSchema, VideoCreate, Transcription as TranscriptionSchema, TranscriptionResponse
 from app.dependencies import get_current_user
 from app.services.video_processing import extract_audio_from_video, google_transcribe, assembly_transcribe
 from chatbot import process_transcribed_video_text, UNIFIED_VECTOR_STORE
@@ -38,7 +38,7 @@ def upload_video(
     db.refresh(new_video)
     return new_video
 
-@router.post("/{video_id}/transcribe", response_model=TranscriptionSchema)
+@router.post("/{video_id}/transcribe", response_model=TranscriptionResponse)
 def transcribe_video(
     video_id: int,
     db: Session = Depends(get_db),
@@ -84,12 +84,30 @@ def transcribe_video(
     # Flatten text for database storage
     full_text = "\n".join([c['text'] for c in chunks])
     
-    new_transcription = VideoTranscribe(
-        video_id=video_id,
-        user_id=current_user.id,
-        transcription_text=full_text
-    )
-    db.add(new_transcription)
-    db.commit()
-    db.refresh(new_transcription)
-    return new_transcription
+    # Check if transcription exists for this video
+    existing_transcription = db.query(VideoTranscribe).filter(VideoTranscribe.video_id == video_id).first()
+    
+    if existing_transcription:
+        # Update existing record
+        existing_transcription.transcription_text = full_text
+        existing_transcription.chunks = chunks
+        existing_transcription.transcribed_at = datetime.utcnow()
+        db.commit()
+        db.refresh(existing_transcription)
+        transcription_record = existing_transcription
+    else:
+        # Create new record
+        new_transcription = VideoTranscribe(
+            video_id=video_id,
+            user_id=current_user.id,
+            transcription_text=full_text,
+            chunks=chunks
+        )
+        db.add(new_transcription)
+        db.commit()
+        db.refresh(new_transcription)
+        transcription_record = new_transcription
+    
+    # Create response object manually to include chunks
+    response_data = TranscriptionResponse.from_orm(transcription_record)
+    return response_data

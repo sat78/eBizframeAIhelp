@@ -28,6 +28,9 @@ class Transcription(TranscriptionBase):
     user_id: int
     video_id: int
     transcribed_at: datetime
-
+    
     class Config:
         from_attributes = True
+
+class TranscriptionResponse(Transcription):
+    chunks: list = []
